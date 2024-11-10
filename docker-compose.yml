@@ -1,0 +1,61 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    ports:
+      - "${OLLAMA_PORT}:11434"
+    environment:
+      - OLLAMA_KEEP_ALIVE=-1
+    volumes:
+      - "${MODEL_PATH}:/root/.ollama"
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD", "ollama", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    entrypoint: >
+      /bin/sh -c "
+      ollama pull ${LLM} &
+      ollama pull ${ENCODER_MODEL} &
+      ollama serve
+      "
+
+  weaviate:
+    command:
+      - --host
+      - 0.0.0.0
+      - --port
+      - '8080'
+      - --scheme
+      - http
+    image: semitechnologies/weaviate
+    container_name: weaviate
+    ports:
+      - "8080:8080"
+      - 50051:50051
+    volumes:
+      - "D:/RAG project/models/LLMs:/var/lib/weaviate"
+    restart: on-failure:0
+    environment:
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      ENABLE_API_BASED_MODULES: 'true'
+      ENABLE_MODULES: 'text2vec-ollama'
+      OLLAMA_API_URL: 'http://ollama:${OLLAMA_PORT}'
+      OLLAMA_MODEL: all-minilm:33m
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+networks:
+  default:
+    name: app_network

@@ -1,0 +1,8 @@
+venv
+.ipynb_checkpoints
+
+models/LLMs/*
+!models/LLMs/ollama_models_here
+
+database/*
+!database/database_here

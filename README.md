@@ -1,1 +1,1 @@
-# EffectiveRag
+In .env set folders to save models and database in
