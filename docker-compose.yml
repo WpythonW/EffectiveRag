@@ -1,6 +1,6 @@
 services:
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama
     container_name: ollama
     ports:
       - "${OLLAMA_PORT}:11434"
@@ -29,29 +29,31 @@ services:
       ollama serve
       "
 
+  text-spellcheck:
+      image: cr.weaviate.io/semitechnologies/text-spellcheck-model:pyspellchecker-en
+
   weaviate:
     command:
-      - --host
-      - 0.0.0.0
-      - --port
-      - '8080'
-      - --scheme
-      - http
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
     image: semitechnologies/weaviate
-    container_name: weaviate
     ports:
-      - "8080:8080"
-      - 50051:50051
+    - ${WEAVIATE_PORT}:8080
     volumes:
-      - "D:/RAG project/models/LLMs:/var/lib/weaviate"
+    - ${DB_PATH}:/var/lib/weaviate
     restart: on-failure:0
     environment:
+      SPELLCHECK_INFERENCE_API: 'http://text-spellcheck:8080'
+      QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
-      ENABLE_API_BASED_MODULES: 'true'
-      ENABLE_MODULES: 'text2vec-ollama'
-      OLLAMA_API_URL: 'http://ollama:${OLLAMA_PORT}'
-      OLLAMA_MODEL: all-minilm:33m
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-ollama'
+      ENABLE_MODULES: 'text2vec-ollama,text-spellcheck,generative-ollama'
+      CLUSTER_HOSTNAME: 'node1'
     depends_on:
       ollama:
         condition: service_healthy

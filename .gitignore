@@ -4,5 +4,5 @@ venv
 models/LLMs/*
 !models/LLMs/ollama_models_here
 
-database/*
-!database/database_here
+weaviate_data/*
+!weaviate_data/database_here
