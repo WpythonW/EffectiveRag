@@ -8,20 +8,41 @@ services:
       OLLAMA_MAX_LOADED_MODELS: 2
       OLLAMA_KEEP_ALIVE: -1
     volumes:
-      - "${MODEL_PATH}:/root/.ollama"
+      - ./models:/root/.ollama  # Используем относительный путь с точкой
     healthcheck:
-      test: ["CMD", "ollama", "--version"]
+      test: ["CMD", "ollama", "list"]
       interval: 30s
       timeout: 10s
       retries: 5
     networks:
       - app_network
-    entrypoint: >
-      /bin/sh -c "
-      ollama pull ${LLM} &
-      ollama pull ${ENCODER_MODEL} &
-      ollama serve
-      "
+    entrypoint: |
+      bash -c '
+      # Start Ollama server
+      ollama serve &
+      
+      # Wait for the server to be ready
+      while ! echo > /dev/tcp/localhost/11434 2>/dev/null; do
+          echo "Waiting for Ollama server to be ready..."
+          sleep 2
+      done
+      
+      echo "Ollama server is ready. Starting to pull models..."
+      
+      # Pull the models
+      if [ ! -z "${LLM}" ]; then
+          echo "Pulling ${LLM}..."
+          ollama pull ${LLM}
+      fi
+      
+      if [ ! -z "${ENCODER_MODEL}" ]; then
+          echo "Pulling ${ENCODER_MODEL}..."
+          ollama pull ${ENCODER_MODEL}
+      fi
+      
+      # Keep the container running
+      wait
+      '
 
   weaviate:
     command:
@@ -37,7 +58,7 @@ services:
     - ${WEAVIATE_PORT_REST}:8080
     - ${WEAVIATE_PORT_GRPC}:50051
     volumes:
-    - ${DB_PATH}:/var/lib/weaviate
+      - ./weaviate_data:/var/lib/weaviate
     restart: on-failure:0
     environment:
       QUERY_DEFAULTS_LIMIT: 25
