@@ -1,0 +1,58 @@
+services:
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "${OLLAMA_PORT}:11434"
+    environment:
+      OLLAMA_MAX_LOADED_MODELS: 2
+      OLLAMA_KEEP_ALIVE: -1
+    volumes:
+      - "${MODEL_PATH}:/root/.ollama"
+    healthcheck:
+      test: ["CMD", "ollama", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    networks:
+      - app_network
+    entrypoint: >
+      /bin/sh -c "
+      ollama pull ${LLM} &
+      ollama pull ${ENCODER_MODEL} &
+      ollama serve
+      "
+
+  weaviate:
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --scheme
+    - http
+    image: semitechnologies/weaviate
+    container_name: weaviate
+    ports:
+    - ${WEAVIATE_PORT_REST}:8080
+    - ${WEAVIATE_PORT_GRPC}:50051
+    volumes:
+    - ${DB_PATH}:/var/lib/weaviate
+    restart: on-failure:0
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'text2vec-ollama'
+      ENABLE_MODULES: 'text2vec-ollama,generative-ollama'
+      OLLAMA_HOST: 'http://ollama:11434'
+      CLUSTER_HOSTNAME: 'node1'
+    networks:
+      - app_network
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+networks:
+  app_network:
+    driver: bridge
