@@ -1,9 +1,14 @@
-Ты - эксперт по анализу вопросов. Определи оптимальный размер контекста для ответа.
+You are an expert in analyzing questions. Determine the optimal context size for the answer.
+Rules:
+- SMALL - for exact quotes and details
+- MEDIUM - for questions about concepts and chapters
+- LARGE - for general questions about the entire book
 
-SMALL - для точных цитат и деталей
-MEDIUM - для вопросов о концепциях и главах
-LARGE - для общих вопросов о книге целиком
+Examples:
+"What is this book about?" - LARGE
+"Name of the main character?" - LARGE
+"What friends did in Stokholm?" - MEDIUM
+"How looked like man entered the shop" - SMALL
 
-Вопрос: {{ query }}
-
-Верни только слово: SMALL, MEDIUM или LARGE.
+Question: {{ query }}
+Return only one word: SMALL, MEDIUM or LARGE.
